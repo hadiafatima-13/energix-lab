@@ -1,0 +1,126 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><title>EnergiX Lab: Learn Energetics by Doing</title>
+<style>
+:root{color-scheme:dark;--bg:#0a0720;--pn:#171038;--ln:#4a3a9a;--gd:#ffd23c;--cy:#4de1ff;--gr:#4be3a0;--fg:#f4f0ff}
+*{box-sizing:border-box}html,body{margin:0;min-height:100%;background:radial-gradient(circle at 20% 0,#241468,var(--bg) 60%);color:var(--fg);font:16px/1.45 system-ui,sans-serif}
+body{padding:env(safe-area-inset-top,0px) 10px env(safe-area-inset-bottom,0px)}
+header{display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between;padding:10px 4px;max-width:1150px;margin:auto}
+header b{font-size:20px;background:linear-gradient(90deg,var(--gd),var(--cy));-webkit-background-clip:text;background-clip:text;color:transparent}
+#dots{display:flex;gap:6px;flex-wrap:wrap}#dots span{padding:4px 11px;border-radius:20px;background:var(--pn);border:1px solid var(--ln);font-size:13px;opacity:.6;transition:.4s}
+#dots .on{opacity:1;border-color:var(--gd);box-shadow:0 0 14px #ffd23c88;transform:scale(1.06)}#dots .dn{opacity:1;background:#12523a;border-color:var(--gr)}
+main{display:grid;grid-template-columns:minmax(0,1.6fr) minmax(280px,1fr);gap:14px;max-width:1150px;margin:auto}
+@media(max-width:820px){main{grid-template-columns:1fr}}
+canvas{width:100%;height:auto;display:block;border-radius:16px;border:2px solid var(--ln);box-shadow:0 0 30px #5a3fe044}
+.box{background:var(--pn);border:2px solid var(--ln);border-radius:16px;padding:12px 14px;margin-bottom:12px}
+.box small{letter-spacing:.14em;font-weight:800;color:var(--cy);font-size:12px}
+#cc{border-color:var(--gd);background:linear-gradient(160deg,#2a1c66,#171038)}#cc small{color:var(--gd)}
+#cc.pop{animation:pop .9s}@keyframes pop{0%{transform:scale(.94);box-shadow:0 0 0 0 #ffd23c}50%{transform:scale(1.03);box-shadow:0 0 34px 6px #ffd23c88}100%{transform:scale(1)}}
+mark{background:#ffd23c;color:#241400;padding:0 5px;border-radius:5px;font-weight:700}
+h3{margin:.1em 0 .3em}p{margin:.3em 0}
+#ctl{display:flex;flex-direction:column;gap:8px;margin-bottom:12px}
+button{font:inherit;font-weight:700;border:0;border-radius:12px;padding:12px 14px;color:#fff;background:linear-gradient(135deg,#6a4cff,#2f7bff);cursor:pointer;transition:.15s;touch-action:manipulation;text-align:left}
+button:hover:not(:disabled){transform:translateY(-2px);box-shadow:0 6px 18px #6a4cff88}button:active{transform:scale(.97)}
+button:disabled{opacity:.35;cursor:not-allowed}button.nx{background:linear-gradient(135deg,#ffb020,#ff6a3d);color:#2a1000;text-align:center}
+button.nx:not(:disabled){animation:pulse 1.2s infinite}@keyframes pulse{50%{box-shadow:0 0 22px #ffb020}}
+#ov{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(6,3,20,.9);padding:16px;z-index:9}
+#ov.h{display:none}#ov .card{max-width:560px;text-align:center;background:var(--pn);border:2px solid var(--gd);border-radius:20px;padding:24px;animation:pop .9s}
+#ov button{text-align:center;font-size:18px;margin-top:10px}ul{text-align:left;padding-left:20px}
+</style></head><body>
+<header><b>⚡ EnergiX Lab</b><div id="dots"></div><button id="sn" style="padding:6px 12px">Sound: on</button></header>
+<main><canvas id="cv" width="800" height="450"></canvas>
+<section><div class="box"><small>MISSION</small><h3 id="mt"></h3><p id="tk"></p></div><div id="ctl"></div><div class="box" id="cc"><small>KEY CONCEPT</small><p id="cp"></p></div></section></main>
+<div id="ov"><div class="card" id="ovc"><h1 style="margin:.1em">⚡ EnergiX Lab</h1><p>Four hands-on missions. In each one <b>you do an experiment</b>, watch the energy move, and the <mark>KEY CONCEPT</mark> box lights up to tell you exactly what you just discovered.</p><p>Tap buttons, hold to charge, and watch the animation.</p><button id="go">Start Mission 1 ▶</button></div></div>
+<script>
+const $=q=>document.querySelector(q),cv=$('#cv'),g=cv.getContext('2d'),W=800,H=450;
+let m=0,T=0,P=[],F=[],snd=1,ac,S={};
+const ez=(a,b,k)=>a+(b-a)*k,MT=['1 · System, Surroundings & Heat','2 · Bond Forge','3 · The Activation Hill','4 · Inside a Living Cell'];
+function bp(f,d=.15){if(!snd)return;try{ac=ac||new AudioContext();const o=ac.createOscillator(),n=ac.createGain();o.frequency.value=f;o.type='triangle';n.gain.value=.07;n.gain.exponentialRampToValueAtTime(.001,ac.currentTime+d);o.connect(n);n.connect(ac.destination);o.start();o.stop(ac.currentTime+d)}catch(e){}}
+function burst(x,y,c,n=30){for(let i=0;i<n;i++){const a=Math.random()*6.28,s=1+Math.random()*4;P.push({x,y,vx:Math.cos(a)*s,vy:Math.sin(a)*s,l:1,c,d:.02})}}
+function fl(x,y,t,c='#ffd23c'){F.push({x,y,t,c,l:1})}
+function ui(task,cons,btns){$('#mt').textContent=MT[m];$('#tk').textContent=task;const cp=$('#cp');cp.innerHTML=cons;const c=$('#cc');c.classList.remove('pop');void c.offsetWidth;c.classList.add('pop');const b=$('#ctl');b.innerHTML='';
+ btns.forEach(x=>{const e=document.createElement('button');e.innerHTML=x[0];e.disabled=!!x[2];if(x[3])e.className=x[3];
+  if(x[4]){e.onpointerdown=()=>S.hold=1;['pointerup','pointerleave','pointercancel'].forEach(n=>e['on'+n]=()=>S.hold=0)}else e.onclick=()=>{bp(600);x[1]()};b.append(e)});
+ [...$('#dots').children].forEach((d,i)=>d.className=i<m?'dn':i==m?'on':'')}
+$('#dots').innerHTML=['System','Bonds','Activation','Cell'].map(t=>`<span>${t}</span>`).join('');
+const tx=(t,x,y,s=16,c='#fff',a='center')=>{g.font=`700 ${s}px system-ui`;g.fillStyle=c;g.textAlign=a;g.fillText(t,x,y)};
+function circ(x,y,r,c,glow=0){g.save();g.shadowColor=c;g.shadowBlur=glow;g.fillStyle=c;g.beginPath();g.arc(x,y,r,0,6.283);g.fill();g.restore()}
+function arrow(x,y1,y2,c,lab,al='left'){g.strokeStyle=c;g.fillStyle=c;g.lineWidth=3;g.beginPath();g.moveTo(x,y1);g.lineTo(x,y2);g.stroke();const d=y2>y1?-1:1;g.beginPath();g.moveTo(x,y2);g.lineTo(x-7,y2+d*12);g.lineTo(x+7,y2+d*12);g.fill();tx(lab,x+(al=='left'?10:-10),(y1+y2)/2+5,15,c,al)}
+function nx(){bp(900,.3);m++;if(m>3){fin();return}init()}
+function init(){[i1,i2,i3,i4][m]()}
+// ---- Mission 1
+function i1(){S={mode:0,ex:0,en:0,th:20,t:0};u1()}
+function u1(){const c={0:'Every reaction has a <mark>system</mark> (the chemicals reacting) and <mark>surroundings</mark> (everything else). Energy transfers between them.',ex:'<mark>Exothermic</mark>: the system RELEASES heat to the surroundings, so they get WARMER. <mark>ΔH is negative</mark> (ΔH &lt; 0). Examples: combustion, neutralisation, respiration.',en:'<mark>Endothermic</mark>: the system ABSORBS heat from the surroundings, so they get COLDER. <mark>ΔH is positive</mark> (ΔH &gt; 0). Examples: thermal decomposition, photosynthesis.'}[S.mode];
+ ui(S.ex&&S.en?'Both experiments done. Compare the arrows and the thermometer!':'Run a reaction and watch where the ENERGY goes.',c,[['🔥 Magnesium + acid',()=>r1('ex')],['🧊 Ammonium nitrate + water',()=>r1('en')],['Next mission ▶',nx,!(S.ex&&S.en),'nx']])}
+function r1(k){S.mode=k;S[k]=1;burst(300,240,k=='ex'?'#ff8a3c':'#5cc8ff',40);u1()}
+function d1(dt){const k=S.mode,cx=300,cy=240;S.th=ez(S.th,k=='ex'?36:k=='en'?6:20,.02);
+ const warm=(S.th-20)/16;g.fillStyle=`rgba(${warm>0?255:80},${100+Math.abs(warm)*20},${warm<0?255:90},${.08+Math.abs(warm)*.18})`;g.fillRect(20,20,560,410);
+ tx('SURROUNDINGS (air, water bath, your hand)',300,45,14,'#9fb4ff');
+ g.setLineDash([8,6]);g.strokeStyle='#ffd23c';g.lineWidth=3;g.beginPath();g.arc(cx,cy,115,0,6.283);g.stroke();g.setLineDash([]);tx('SYSTEM = the reacting chemicals',cx,cy+145,15,'#ffd23c');
+ g.fillStyle='#ccd8ff44';g.fillRect(255,180,90,110);g.fillStyle=k=='ex'?'#ff7a3c':k=='en'?'#4db8ff':'#8fa0c8';g.globalAlpha=.85;g.fillRect(258,215+Math.sin(T*3)*2,84,72);g.globalAlpha=1;g.strokeStyle='#fff';g.lineWidth=3;g.strokeRect(255,180,90,110);
+ if(k){if(Math.random()<.5){const a=Math.random()*6.28,ca=Math.cos(a),sa=Math.sin(a);P.push(k=='ex'?{x:cx+ca*60,y:cy+sa*60,vx:ca*2.6,vy:sa*2.6,l:1,c:'#ff9a3c',d:.008}:{x:cx+ca*200,y:cy+sa*200,vx:-ca*2.6,vy:-sa*2.6,l:1,c:'#7fd4ff',d:.012})}
+  tx(k=='ex'?'ENERGY OUT  →':'←  ENERGY IN',cx,cy-140,20,k=='ex'?'#ff9a3c':'#7fd4ff');
+  tx(k=='ex'?'ΔH < 0  (negative)':'ΔH > 0  (positive)',cx,415,24,k=='ex'?'#ff9a3c':'#7fd4ff')}
+ g.fillStyle='#000a';g.fillRect(645,60,26,320);g.fillStyle=warm>0?'#ff5a3c':'#3aa0ff';const h=ez(40,300,(S.th+5)/45);g.fillRect(648,378-h,20,h);circ(658,385,22,warm>0?'#ff5a3c':'#3aa0ff',12);
+ tx('Surroundings',658,45,14);tx(Math.round(S.th)+'°C',658,425,18,'#ffd23c')}
+// ---- Mission 2
+function i2(){S={a:[[230,'#fff',20],[300,'#fff',20],[520,'#5cf27a',32],[610,'#5cf27a',32]].map(([x,c,r])=>({x,y:160,tx:x,ty:160,c,r})),bh:0,bc:0,f:0,A:0,R:0,ab:0,rb:0};u2()}
+function u2(){const A=S.A,R=S.R,done=S.f==2;
+ const c=done?`<mark>ΔH = energy absorbed breaking bonds − energy released forming bonds</mark><br>= ${A} − ${R} = <mark>${A-R} kJ</mark>. More energy is released than absorbed, so ΔH is negative: <mark>exothermic</mark>.`:S.bh&&S.bc?'Now the atoms can join. <mark>Bond making RELEASES energy</mark> (exothermic step).':'<mark>Bond breaking ABSORBS energy</mark> (endothermic step). You must supply energy to pull atoms apart.';
+ ui(done?'Reaction complete! Compare the two bars.':S.bh&&S.bc?'Form the two H–Cl bonds.':'H₂ + Cl₂ → 2HCl. First BREAK both old bonds.',c,[['✂ Break H–H  (+436 kJ absorbed)',()=>{S.bh=1;S.A+=436;S.a[0].tx=180;S.a[1].tx=340;burst(265,160,'#ff6a5a');fl(265,120,'+436 kJ absorbed','#ff6a5a');u2()},S.bh],['✂ Break Cl–Cl  (+243 kJ absorbed)',()=>{S.bc=1;S.A+=243;S.a[2].tx=470;S.a[3].tx=660;burst(565,160,'#ff6a5a');fl(565,110,'+243 kJ absorbed','#ff6a5a');u2()},S.bc],['🔗 Form H–Cl bond  (−431 kJ released)',()=>{const k=S.f,a=S.a;a[k].tx=320+k*180;a[k].ty=340;a[2+k].tx=372+k*180;a[2+k].ty=340;S.R+=431;S.f++;burst(346+k*180,340,'#4be3a0');fl(346+k*180,290,'−431 kJ released','#4be3a0');u2()},!(S.bh&&S.bc)||S.f>=2],['Next mission ▶',nx,!done,'nx']])}
+function d2(){const a=S.a;a.forEach(t=>{t.x=ez(t.x,t.tx,.08);t.y=ez(t.y,t.ty,.08)});
+ const ln=(p,q)=>{g.strokeStyle='#fff';g.lineWidth=8;g.beginPath();g.moveTo(a[p].x,a[p].y);g.lineTo(a[q].x,a[q].y);g.stroke()};
+ if(!S.bh)ln(0,1);if(!S.bc)ln(2,3);if(S.f>=1)ln(0,2);if(S.f>=2)ln(1,3);
+ a.forEach((t,i)=>{const w=Math.sin(T*6+i)*(S.bh&&!S.f?2:0);circ(t.x,t.y+w,t.r,t.c,14);tx(i<2?'H':'Cl',t.x,t.y+w+6,t.r>25?18:15,'#111')});
+ tx('REACTANTS',110,30,14,'#9fb4ff');tx('PRODUCTS',110,300,14,'#9fb4ff');
+ const bh=v=>v*.32;S.ab=ez(S.ab,S.A,.06);S.rb=ez(S.rb,S.R,.06);
+ g.fillStyle='#ff6a5a';g.fillRect(650,390-bh(S.ab),55,bh(S.ab));g.fillStyle='#4be3a0';g.fillRect(720,390-bh(S.rb),55,bh(S.rb));
+ tx('Absorbed',677,410,13,'#ff6a5a');tx('Released',747,410,13,'#4be3a0');tx(Math.round(S.ab)+' kJ',677,382-bh(S.ab),14,'#ff6a5a');tx(Math.round(S.rb)+' kJ',747,382-bh(S.rb),14,'#4be3a0');
+ tx(S.f==2?`ΔH = ${S.A} − ${S.R} = ${S.A-S.R} kJ`:`ΔH = absorbed (${S.A}) − released (${S.R})`,330,435,20,'#ffd23c')}
+// ---- Mission 3
+const DV={exo:{R:120,P:60,u:70,c:30},endo:{R:60,P:120,u:100,c:60}};
+const cvf=(R,Pp,Ea)=>{const b=x=>R+(Pp-R)*x*x*(3-2*x),h=Ea-(b(.4)-R);return x=>b(x)+h*Math.exp(-((x-.4)**2)/.02)};
+function i3(){S={k:'exo',cat:0,ea:70,e:0,bx:0,go:0,u:0,c:0,hold:0,t:0};u3()}
+function rst(){S.e=0;S.bx=0;S.go=0}
+function u3(){const v=DV[S.k],d=v.P-v.R,sg=(d>0?'+':'−')+Math.abs(d);
+ let c=S.cat?`<mark>Catalyst / enzyme</mark> = alternative pathway with <mark>LOWER activation energy</mark> (${v.c} instead of ${v.u}). Reactants, products and <mark>ΔH (${sg}) do NOT change</mark>.`:`<mark>Activation energy (Ea = ${v.u})</mark> = the minimum energy needed for a successful reaction.`;
+ c+='<br>'+(S.k=='exo'?'<mark>Exothermic</mark>: products lower than reactants, so ΔH is negative.':'<mark>Endothermic</mark>: products higher than reactants, so ΔH is positive.');
+ ui(!S.u?'HOLD the charge button until your energy line passes the hill top, then LAUNCH.':!S.c?'Now add the CATALYST and cross again with less energy!':'Well done! Try the other reaction type or continue.',c,[['⚡ Hold to charge energy',0,0,'',1],['🚀 Launch',()=>{const e=S.cat?v.c:v.u;if(S.go)return;if(S.e>=e-1)S.go=1;else{S.go=2;fl(400,120,`Not enough! Ea is ${e}`,'#ff6a5a')}}],[S.cat?'Remove catalyst':'🧪 Add catalyst',()=>{S.cat=1-S.cat;rst();u3()}],[S.k=='exo'?'Switch to endothermic':'Switch to exothermic',()=>{S.k=S.k=='exo'?'endo':'exo';S.cat=0;S.ea=DV[S.k].u;rst();u3()}],['Next mission ▶',nx,!(S.u&&S.c),'nx']])}
+function d3(dt){const v=DV[S.k],X=x=>70+x*650,Y=e=>410-e*2.5,tg=S.cat?v.c:v.u;S.ea=ez(S.ea,tg,.07);const f=cvf(v.R,v.P,S.ea);
+ if(S.hold&&!S.go){S.e=Math.min(120,S.e+50*dt);if(Math.random()<.4)P.push({x:X(0)+(Math.random()-.5)*30,y:Y(v.R+S.e),vx:0,vy:-1,l:1,c:'#ffd23c',d:.03})}
+ if(S.go==1){S.bx+=dt*.45;if(S.bx>=1){S.bx=1;S.go=4;S.t=0;burst(X(1),Y(v.P),'#4be3a0',50);bp(1000,.4);fl(X(.85),Y(v.P)-50,'Reaction successful!','#4be3a0');S[S.cat?'c':'u']=1;u3()}}
+ if(S.go==2){S.bx+=dt*.4;if(S.bx>.3)S.go=3}if(S.go==3){S.bx-=dt*.6;if(S.bx<=0)rst()}
+ if(S.go==4){S.t+=dt;if(S.t>1.8)rst()}
+ g.beginPath();for(let i=0;i<=100;i++){const x=i/100;i?g.lineTo(X(x),Y(f(x))):g.moveTo(X(x),Y(f(x)))}g.strokeStyle=S.cat?'#4be3a0':'#ff9a3c';g.lineWidth=5;g.shadowColor=g.strokeStyle;g.shadowBlur=14;g.stroke();g.shadowBlur=0;
+ g.setLineDash([6,5]);g.lineWidth=2;g.strokeStyle='#8890c8';[v.R,v.P].forEach(e=>{g.beginPath();g.moveTo(X(0),Y(e));g.lineTo(X(1),Y(e));g.stroke()});
+ g.strokeStyle='#ffd23c';g.beginPath();g.moveTo(X(0),Y(v.R+S.e));g.lineTo(X(.62),Y(v.R+S.e));g.stroke();g.setLineDash([]);
+ tx('Your energy: '+Math.round(S.e),X(.62)+8,Y(v.R+S.e)+5,14,'#ffd23c','left');
+ tx('Reactants',X(0)+10,Y(v.R)-10,15,'#fff','left');tx('Products',X(.8),Y(v.P)+(S.k=='exo'?22:-10),15);
+ arrow(X(.4)-25,Y(v.R),Y(v.R+S.ea),S.cat?'#4be3a0':'#ff9a3c','Ea','right');
+ const p=1+Math.sin(T*5)*.15*(S.cat?1:0);arrow(X(.96),Y(v.R),Y(v.P),'#66c8ff',`ΔH ${v.P>v.R?'+':'−'}${Math.abs(v.P-v.R)}${S.cat?' (unchanged!)':''}`,'right');
+ tx('Energy ↑',36,28,14);tx('Reaction progress →',X(.5),440,14);
+ const bx=S.bx,bal=circ(X(bx),Y(f(bx))-16,15,'#4de1ff',16+S.e/6);tx('R',X(bx),Y(f(bx))-11,14,'#012')}
+// ---- Mission 4
+function i4(){S={aer:0,ana:0,lp:0,st:0,us:0,av:0,nv:0,ta:0,tn:0,last:0};u4()}
+function u4(){const c=[ 'Respiration releases the energy stored in glucose. It is an <mark>exothermic</mark> process that powers living things.','<mark>Aerobic respiration</mark> (with oxygen): glucose + oxygen → carbon dioxide + water. Releases LOTS of energy (about 2870 kJ per mole of glucose).','<mark>Anaerobic respiration</mark> (no oxygen): releases MUCH LESS energy from the same glucose. It is still exothermic.','<mark>Lipids (fats)</mark> are reserve stores of energy. Spare energy is stored for later.','Stored lipid is broken down when the cell needs energy: a <mark>reserve store</mark> released later.'][S.last];
+ ui(!S.aer?'Feed glucose into the cell with oxygen and watch the energy released.':!S.ana?'Now try again WITHOUT oxygen.':!S.st?'Store spare energy as lipid droplets.':!S.us?'The cell is hungry! Use the lipid reserve.':'All done!',c,[['🫁 Aerobic respiration (O₂)',()=>{S.aer=1;S.ta=1;S.last=1;burst(300,235,'#4de1ff',60);u4()}],['🚫 Anaerobic respiration (no O₂)',()=>{S.ana=1;S.tn=.07;S.last=2;burst(300,235,'#c78bff',8);u4()}],['🛢 Store spare energy as lipid',()=>{if(S.lp<4)S.lp++;S.st=1;S.last=3;burst(150,330,'#ffe066',20);u4()},!S.aer||S.lp>=4],['🔋 Use lipid reserve',()=>{S.lp--;S.us=1;S.last=4;burst(300,235,'#ffe066',50);u4()},S.lp<1],['Finish ✔',nx,!(S.aer&&S.ana&&S.st&&S.us),'nx']])}
+function d4(){S.av=ez(S.av,S.ta,.04);S.nv=ez(S.nv,S.tn,.04);
+ const gr=g.createRadialGradient(300,235,20,300,235,240);gr.addColorStop(0,'#3a2a88');gr.addColorStop(1,'#1a2a5a');g.fillStyle=gr;g.strokeStyle='#8fb0ff';g.lineWidth=4;g.beginPath();g.ellipse(300,235,250,180,0,0,6.283);g.fill();g.stroke();tx('CELL',300,75,14,'#9fb4ff');
+ g.fillStyle='#c9508a';g.beginPath();g.ellipse(300,235,80+Math.sin(T*3)*3,42,0,0,6.283);g.fill();tx('Mitochondrion',300,240,14);
+ for(let i=0;i<6;i++){const a=i*1.05+T*.5;circ(90+Math.cos(a)*14,235+Math.sin(a)*14,7,'#ffc23c',8)}tx('Glucose',90,275,13);
+ for(let i=0;i<(S.aer?5:0);i++)circ(130+((T*40+i*30)%110),185+Math.sin(T*3+i)*10,5,'#4de1ff',6);
+ for(let i=0;i<S.lp;i++)circ(120+i*38,340+Math.sin(T*2+i)*3,16,'#ffe066',12);tx('Lipid droplets',180,385,13);
+ if(S.aer&&Math.random()<.3)P.push({x:300+(Math.random()-.5)*100,y:235,vx:0,vy:-1.5,l:1,c:'#4de1ff',d:.02});
+ const bh=v=>v*300;g.fillStyle='#4de1ff';g.fillRect(600,400-bh(S.av),70,bh(S.av));g.fillStyle='#c78bff';g.fillRect(700,400-bh(S.nv),70,bh(S.nv));
+ tx('Aerobic',635,420,14,'#4de1ff');tx('Anaerobic',735,420,14,'#c78bff');tx('Energy released',685,30,15);
+ if(S.aer)tx('≈2870 kJ',635,392-bh(S.av),14,'#4de1ff');if(S.ana)tx('≈200 kJ',735,392-bh(S.nv),14,'#c78bff')}
+// ---- finish & loop
+function fin(){$('#ovc').innerHTML='<h1 style="margin:.1em">🏆 Lab Complete!</h1><p>You discovered:</p><ul><li>System vs surroundings; exothermic (ΔH −) vs endothermic (ΔH +)</li><li>Bond breaking absorbs, bond making releases; ΔH = absorbed − released</li><li>Activation energy and how catalysts lower it without changing ΔH</li><li>Respiration is exothermic; lipids are energy reserves</li></ul><button onclick="location.reload()">Play again</button>';$('#ov').classList.remove('h');for(let i=0;i<8;i++)setTimeout(()=>burst(Math.random()*W,Math.random()*H,'#ffd23c',30),i*200)}
+$('#go').onclick=()=>{$('#ov').classList.add('h');bp(700);init()};
+$('#sn').onclick=()=>{snd=!snd;$('#sn').textContent='Sound: '+(snd?'on':'off')};
+let last=performance.now();
+(function loop(n){requestAnimationFrame(loop);const dt=Math.min(.05,(n-last)/1000);last=n;T+=dt;
+ const b=g.createLinearGradient(0,0,0,H);b.addColorStop(0,'#150c40');b.addColorStop(1,'#0a0724');g.fillStyle=b;g.fillRect(0,0,W,H);
+ for(let i=0;i<40;i++){g.globalAlpha=.3+.3*Math.sin(T*2+i);g.fillStyle='#fff';g.fillRect((i*97)%W,(i*61)%H,2,2)}g.globalAlpha=1;
+ if(S&&Object.keys(S).length&&$('#ov').classList.contains('h'))[d1,d2,d3,d4][m](dt);
+ P=P.filter(p=>p.l>0);P.forEach(p=>{p.x+=p.vx;p.y+=p.vy;p.l-=p.d;g.globalAlpha=Math.max(0,p.l);circ(p.x,p.y,4,p.c,10)});g.globalAlpha=1;
+ F=F.filter(f=>f.l>0);F.forEach(f=>{f.y-=.6;f.l-=.012;g.globalAlpha=Math.max(0,f.l);tx(f.t,f.x,f.y,18,f.c)});g.globalAlpha=1})(last);
+</script></body></html>
